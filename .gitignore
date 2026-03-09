@@ -1,0 +1,11 @@
+# appsettings with real secrets (use appsettings.json for defaults, this for local overrides)
+**/appsettings.local.json
+
+# .NET build outputs
+bin/
+obj/
+
+# User-specific VS/Rider files
+*.user
+.vs/
+.idea/
