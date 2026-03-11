@@ -1,8 +1,8 @@
-using Agent.Core.Configuration;
-using Agent.Core.LLM.Models;
-using Flurl.Http;
-
 namespace Agent.Core.LLM;
+
+using Flurl.Http;
+using global::Agent.Core.Configuration;
+using global::Agent.Core.LLM.Models;
 
 public class OpenRouterClient : ILlmClient
 {
@@ -13,15 +13,15 @@ public class OpenRouterClient : ILlmClient
         _options = options;
     }
 
-    public async Task<ChatResponse> ChatAsync(IReadOnlyList<ChatMessage> messages, IReadOnlyList<ToolDefinition>? tools = null, ResponseFormat? responseFormat = null, CancellationToken ct = default)
+    public async Task<ChatResponse> ChatAsync(IReadOnlyList<ChatMessage> messages, IReadOnlyList<ToolDefinition>? tools = null, ResponseFormat? responseFormat = null, string? modelOverride = null, CancellationToken ct = default)
     {
         var request = new ChatRequest
-        {
-            Model = _options.Model,
-            Messages = messages.ToList(),
-            Tools = tools?.ToList() is { Count: > 0 } toolList ? toolList : null,
-            ResponseFormat = responseFormat
-        };
+                      {
+                          Model = modelOverride ?? _options.Model,
+                          Messages = messages.ToList(),
+                          Tools = tools?.ToList() is { Count: > 0 } toolList ? toolList : null,
+                          ResponseFormat = responseFormat
+                      };
 
         try
         {

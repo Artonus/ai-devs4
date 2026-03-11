@@ -1,10 +1,14 @@
+namespace Agent.Core.Tasks.People;
+
+using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using Agent.Core.LLM;
-using Agent.Core.LLM.Models;
+using global::Agent.Core.LLM;
+using global::Agent.Core.LLM.Models;
 using Microsoft.Extensions.Logging;
 
-namespace Agent.Core.Tasks.People;
+/// <summary>Delegate used to forward task progress lines to the UI layer without a hard dependency on Agent.</summary>
+public delegate void TaskLogWriter(string line);
 
 public class PeopleTaskService
 {
@@ -57,20 +61,31 @@ public class PeopleTaskService
 
     private readonly ILogger<PeopleTaskService> _logger;
 
+    private TaskLogWriter? _logWriter;
+
     public PeopleTaskService(ILlmClient llmClient, ILogger<PeopleTaskService> logger)
     {
         _llmClient = llmClient;
         _logger = logger;
     }
 
+    /// <summary>Registers a delegate that receives human-readable progress lines for the UI.</summary>
+    public void SetLogWriter(TaskLogWriter writer) => _logWriter = writer;
+
+    private void Emit(string line)
+    {
+        _logger.LogInformation("{Line}", line);
+        _logWriter?.Invoke(line);
+    }
+
     public List<Person> LoadAndFilter(string csvPath)
     {
         var all = ParseCsv(csvPath);
-        _logger.LogInformation("Loaded {Total} people from CSV", all.Count);
+        Emit($"Loaded {all.Count} people from CSV.");
 
         var filtered = all.Where(p => p is { Gender: "M", BirthPlace: "Grudziądz", BirthYear: >= 1986 and <= 2006 }).ToList();
 
-        _logger.LogInformation("Filtered to {Count} candidates (male, Grudziądz, born 1986-2006)", filtered.Count);
+        Emit($"Filtered to {filtered.Count} candidates (male, Grudziądz, born 1986–2006).");
         return filtered;
     }
 
@@ -79,23 +94,18 @@ public class PeopleTaskService
         // batchSize = 0 means send all at once; otherwise limit to first N for testing
         var toProcess = batchSize > 0 ? candidates.Take(batchSize).ToList() : candidates;
 
-        _logger.LogInformation("Tagging {Count} people (batch mode: {BatchSize})",
-                               toProcess.Count,
-                               batchSize > 0 ? batchSize.ToString() : "all");
+        Emit($"Tagging {toProcess.Count} people{(batchSize > 0 ? $" (test: first {batchSize})" : " (all)")}...");
 
         var taggedJobs = await TagJobsAsync(toProcess, ct);
 
         var results = new List<PersonResult>();
 
-        for (int i = 0; i < toProcess.Count; i++)
+        for (var i = 0; i < toProcess.Count; i++)
         {
             var person = toProcess[i];
             var tags = taggedJobs.TryGetValue(i, out var t) ? t : [];
 
-            _logger.LogInformation("{Name} {Surname}: [{Tags}]",
-                                   person.Name,
-                                   person.Surname,
-                                   string.Join(", ", tags));
+            Emit($"  [{i}] {person.Name} {person.Surname}: [{string.Join(", ", tags)}]");
 
             if (tags.Contains("transport"))
             {
@@ -111,8 +121,29 @@ public class PeopleTaskService
             }
         }
 
-        _logger.LogInformation("Found {Count} people with 'transport' tag", results.Count);
+        Emit($"Found {results.Count} people with 'transport' tag.");
+
+        var suspectsPath = Path.Combine("files", "suspects.json");
+        SaveSuspectsToFile(results, suspectsPath);
+        Emit($"// Suspects saved to {suspectsPath}");
+
         return results;
+    }
+
+    /// <summary>
+    ///     Serialises the filtered suspects to a JSON file for use by the FindHim task.
+    ///     Each entry contains only name, surname, and birthYear.
+    /// </summary>
+    public void SaveSuspectsToFile(List<PersonResult> suspects, string path)
+    {
+        var directory = Path.GetDirectoryName(path);
+        if (!string.IsNullOrEmpty(directory))
+            Directory.CreateDirectory(directory);
+
+        var entries = suspects.Select(p => new SuspectFileEntry { Name = p.Name, Surname = p.Surname, BirthYear = p.Born }).ToList();
+
+        var json = JsonSerializer.Serialize(entries, new JsonSerializerOptions { WriteIndented = true });
+        File.WriteAllText(path, json);
     }
 
     private async Task<Dictionary<int, List<string>>> TagJobsAsync(List<Person> people, CancellationToken ct)
@@ -212,40 +243,36 @@ public class PeopleTaskService
     }
 
     /// <summary>
-    /// Splits a CSV line respecting double-quoted fields that may contain commas.
+    ///     Splits a CSV line respecting double-quoted fields that may contain commas.
     /// </summary>
     private static string[] SplitCsvLine(string line)
     {
         var fields = new List<string>();
-        var current = new System.Text.StringBuilder();
-        bool inQuotes = false;
+        var current = new StringBuilder();
+        var inQuotes = false;
 
-        for (int i = 0; i < line.Length; i++)
+        for (var i = 0; i < line.Length; i++)
         {
-            char c = line[i];
+            var c = line[i];
 
             if (c == '"')
             {
                 // Handle escaped quote ("")
-                if (inQuotes && i + 1 < line.Length && line[i + 1] == '"')
+                if (inQuotes && ((i + 1) < line.Length) && (line[i + 1] == '"'))
                 {
                     current.Append('"');
                     i++;
                 }
                 else
-                {
                     inQuotes = !inQuotes;
-                }
             }
-            else if (c == ',' && !inQuotes)
+            else if ((c == ',') && !inQuotes)
             {
                 fields.Add(current.ToString());
                 current.Clear();
             }
             else
-            {
                 current.Append(c);
-            }
         }
 
         fields.Add(current.ToString());
@@ -267,4 +294,16 @@ file class TaggedJob
 
     [JsonPropertyName("tags")]
     public List<string> Tags { get; set; } = [];
+}
+
+file class SuspectFileEntry
+{
+    [JsonPropertyName("name")]
+    public string Name { get; set; } = string.Empty;
+
+    [JsonPropertyName("surname")]
+    public string Surname { get; set; } = string.Empty;
+
+    [JsonPropertyName("birthYear")]
+    public int BirthYear { get; set; }
 }

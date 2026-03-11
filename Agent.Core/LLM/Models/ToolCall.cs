@@ -1,6 +1,6 @@
-using System.Text.Json.Serialization;
-
 namespace Agent.Core.LLM.Models;
+
+using System.Text.Json.Serialization;
 
 public class ToolCall
 {

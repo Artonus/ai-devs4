@@ -1,6 +1,6 @@
-using System.Text.Json;
-
 namespace Agent.Core.Tools.Implementations;
+
+using System.Text.Json;
 
 public class FileReadTool : ITool
 {
@@ -9,18 +9,11 @@ public class FileReadTool : ITool
     public string Description => "Read the contents of a file at the given path.";
 
     public object ParameterSchema => new
-    {
-        type = "object",
-        properties = new
-        {
-            path = new
-            {
-                type = "string",
-                description = "The absolute or relative path to the file to read."
-            }
-        },
-        required = new[] { "path" }
-    };
+                                     {
+                                         type = "object",
+                                         properties = new { path = new { type = "string", description = "The absolute or relative path to the file to read." } },
+                                         required = new[] { "path" }
+                                     };
 
     public async Task<ToolResult> ExecuteAsync(JsonElement parameters, CancellationToken ct = default)
     {

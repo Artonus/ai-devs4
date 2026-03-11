@@ -1,6 +1,6 @@
-using System.Text.Json.Serialization;
-
 namespace Agent.Core.Tasks.People;
+
+using System.Text.Json.Serialization;
 
 public class PersonResult
 {

@@ -1,0 +1,260 @@
+@page "/"
+@rendermode InteractiveServer
+@inject PeopleTaskService PeopleTask
+@inject FindHimTaskService FindHimTask
+@inject HubClient HubClient
+@inject TaskLogService LogService
+@inject AgentOptions AgentOptions
+@using Agent.Core.Configuration
+@using Agent.Core.Tasks.FindHim
+@using Agent.Core.Tasks.People
+@using Agent.UI.Services
+@implements IDisposable
+
+<PageTitle>AI_DEVS — Task Runner</PageTitle>
+
+<div class="task-runner">
+
+    <section class="task-selection">
+        <h1 class="section-title"><span class="prompt">&gt;</span> select_task</h1>
+
+        <div class="task-grid">
+            @foreach (var task in _tasks)
+            {
+                <div class="task-card @(task.Id == _selectedTask ? "task-card--selected" : "")"
+                     @onclick="() => SelectTask(task.Id)">
+                    <div class="task-card-id">@task.Id</div>
+                    <div class="task-card-name">@task.Name</div>
+                    <div class="task-card-desc">@task.Description</div>
+                </div>
+            }
+        </div>
+    </section>
+
+    @if (_selectedTask is not null)
+    {
+        <section class="task-controls">
+            <h2 class="section-title"><span class="prompt">&gt;</span> execute</h2>
+            <div class="control-row">
+                <button class="btn btn--test"
+                        disabled="@(_isRunning)"
+                        @onclick="() => RunTask(true)">
+                    @if (_isRunning && (_runMode == "test"))
+                    {
+                        <span class="spinner">&#9632;</span>
+                        <span>running...</span>
+                    }
+                    else
+                    {
+                        <span>[ RUN TEST ]</span>
+                    }
+                </button>
+                <button class="btn btn--run"
+                        disabled="@(_isRunning)"
+                        @onclick="() => RunTask(false)">
+                    @if (_isRunning && (_runMode == "full"))
+                    {
+                        <span class="spinner">&#9632;</span>
+                        <span>running...</span>
+                    }
+                    else
+                    {
+                        <span>[ RUN FULL ]</span>
+                    }
+                </button>
+                @if (_isRunning)
+                {
+                    <button class="btn btn--cancel" @onclick="CancelTask">[ CANCEL ]</button>
+                }
+            </div>
+            @if (_errorMessage is not null)
+            {
+                <div class="error-banner">ERROR: @_errorMessage</div>
+            }
+        </section>
+    }
+
+    <section class="log-section">
+        <div class="log-header">
+            <h2 class="section-title"><span class="prompt">&gt;</span> output</h2>
+            @if ((_logLines.Count > 0) && !_isRunning)
+            {
+                <button class="btn-clear" @onclick="ClearLog">clear</button>
+            }
+        </div>
+        <div class="terminal" id="terminal-output">
+            @if (_logLines.Count == 0)
+            {
+                <span class="terminal-placeholder">// no output yet — select a task and press RUN</span>
+            }
+            @foreach (var line in _logLines)
+            {
+                <div class="terminal-line @GetLineClass(line)">@line</div>
+            }
+            @if (_isRunning)
+            {
+                <div class="terminal-line terminal-line--cursor">_</div>
+            }
+        </div>
+    </section>
+
+</div>
+
+@code {
+
+    private record TaskInfo(string Id, string Name, string Description);
+
+    private static readonly TaskInfo[] _tasks = [
+                                                    new("people", "People Task", "Filter CSV records by demographic criteria, classify jobs via LLM, and submit results to the hub."), 
+                                                    new("findhim", "Find Him Task", "Find suspect near nuclear power plant, determine access level and plant code, submit to hub.")
+                                                ];
+
+    private string? _selectedTask;
+
+    private bool _isRunning;
+
+    private string? _runMode;
+
+    private string? _errorMessage;
+
+    private readonly List<string> _logLines = [];
+
+    private IDisposable? _logSubscription;
+
+    private CancellationTokenSource? _cts;
+
+
+
+    protected override void OnInitialized()
+    {
+        // Restore any history from a previous run that is still in memory
+        _logLines.AddRange(LogService.History);
+        _isRunning = LogService.IsRunning;
+
+        _logSubscription = LogService.Subscribe(line =>
+                                                {
+                                                    InvokeAsync(() =>
+                                                                {
+                                                                    if (!string.IsNullOrEmpty(line))
+                                                                        _logLines.Add(line);
+                                                                    StateHasChanged();
+                                                                });
+                                                });
+    }
+
+    private void SelectTask(string id)
+    {
+        if (_isRunning)
+            return;
+
+        _selectedTask = id;
+        _errorMessage = null;
+    }
+
+    private async Task RunTask(bool testMode)
+    {
+        if (_isRunning || _selectedTask is null)
+            return;
+
+        _isRunning = true;
+        _runMode = testMode ? "test" : "full";
+        _errorMessage = null;
+        _cts = new CancellationTokenSource();
+
+        LogService.Begin();
+        _logLines.Clear();
+
+        try
+        {
+            if (_selectedTask == "people")
+                await RunPeopleTaskAsync(testMode, _cts.Token);
+            else if (_selectedTask == "findhim")
+                await RunFindHimTaskAsync(testMode, _cts.Token);
+        }
+        catch (OperationCanceledException)
+        {
+            LogService.Log("// task cancelled.");
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = ex.Message;
+            LogService.Log($"ERROR: {ex.Message}");
+        }
+        finally
+        {
+            LogService.End();
+            _isRunning = false;
+            _runMode = null;
+            _cts?.Dispose();
+            _cts = null;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private async Task RunPeopleTaskAsync(bool testMode, CancellationToken ct)
+    {
+        // Wire the task service to our log channel for this run
+        PeopleTask.SetLogWriter(line => LogService.Log(line));
+
+        LogService.Log(testMode ? "// People Task — TEST MODE (first 3 candidates, no submission)" : "// People Task — FULL MODE");
+
+        var candidates = PeopleTask.LoadAndFilter(AgentOptions.PeopleCsvPath);
+        var results = await PeopleTask.TagAndFilterAsync(candidates, testMode ? 3 : 0, ct);
+
+        LogService.Log($"// Result: {results.Count} person(s) matched 'transport' tag.");
+
+        if (!testMode)
+        {
+            LogService.Log("// Submitting to hub...");
+            var response = await HubClient.SubmitPeopleAsync(results, ct);
+            LogService.Log($"// Hub response [{response.Code}]: {response.Message}");
+        }
+        else
+        {
+            LogService.Log("// Test mode complete — use RUN FULL to submit.");
+        }
+    }
+
+    private async Task RunFindHimTaskAsync(bool testMode, CancellationToken ct)
+    {
+        FindHimTask.SetLogWriter(line => LogService.Log(line));
+
+        LogService.Log(testMode ? "// FindHim Task — TEST MODE (agent runs, no answer submitted)" : "// FindHim Task — FULL MODE");
+
+        if (testMode)
+        {
+            LogService.Log("// Test mode: agent will investigate but submit_findhim_answer will still call the Hub.");
+            LogService.Log("// Use RUN FULL to run a clean full execution.");
+        }
+
+        await FindHimTask.RunAsync(ct);
+    }
+
+    private void CancelTask()
+    {
+        _cts?.Cancel();
+    }
+
+    private void ClearLog()
+    {
+        _logLines.Clear();
+    }
+
+    private static string GetLineClass(string line)
+    {
+        if (line.StartsWith("ERROR"))
+            return "terminal-line--error";
+        if (line.StartsWith("//"))
+            return "terminal-line--comment";
+        if (line.StartsWith("  ["))
+            return "terminal-line--detail";
+
+        return "";
+    }
+
+    public void Dispose()
+    {
+        _logSubscription?.Dispose();
+    }
+
+}
