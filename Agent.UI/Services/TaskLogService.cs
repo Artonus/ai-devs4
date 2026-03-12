@@ -35,12 +35,12 @@ public class TaskLogService
         }
 
         return new Subscription(() =>
-                                {
-                                    lock (_lock)
-                                    {
-                                        _subscribers.Remove(onLine);
-                                    }
-                                });
+        {
+            lock (_lock)
+            {
+                _subscribers.Remove(onLine);
+            }
+        });
     }
 
     /// <summary>Emit a log line to all subscribers and append it to history.</summary>
@@ -55,7 +55,6 @@ public class TaskLogService
         }
 
         foreach (var sub in snapshot)
-        {
             try
             {
                 sub(line);
@@ -64,7 +63,6 @@ public class TaskLogService
             {
                 /* don't let a bad subscriber kill the task */
             }
-        }
     }
 
     /// <summary>Clears the history and marks a task as running.</summary>
@@ -94,17 +92,20 @@ public class TaskLogService
         }
 
         foreach (var sub in snapshot)
-        {
             try
             {
                 sub(string.Empty);
             }
-            catch {}
-        }
+            catch
+            {
+            }
     }
 
     private sealed class Subscription(Action dispose) : IDisposable
     {
-        public void Dispose() => dispose();
+        public void Dispose()
+        {
+            dispose();
+        }
     }
 }

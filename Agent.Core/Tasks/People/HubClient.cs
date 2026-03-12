@@ -1,10 +1,10 @@
-namespace Agent.Core.Tasks.People;
-
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Agent.Core.Configuration;
 using Flurl.Http;
-using global::Agent.Core.Configuration;
 using Microsoft.Extensions.Logging;
+
+namespace Agent.Core.Tasks.People;
 
 public class HubClient
 {
@@ -23,7 +23,8 @@ public class HubClient
         var payload = new HubRequest { ApiKey = _options.AiDevsKey, Task = task, Answer = requestData };
 
         _logger.LogInformation("Submitting task to {Url}/verify", _options.HubBaseUrl);
-        _logger.LogDebug("Payload: {Json}", JsonSerializer.Serialize(payload, new JsonSerializerOptions { WriteIndented = true }));
+        _logger.LogDebug("Payload: {Json}",
+            JsonSerializer.Serialize(payload, new JsonSerializerOptions { WriteIndented = true }));
 
         try
         {
@@ -46,13 +47,14 @@ public class HubClient
         var payload = new HubRequest { ApiKey = _options.AiDevsKey, Task = "people", Answer = people };
 
         _logger.LogInformation("Submitting {Count} people to {Url}/verify", people.Count, _options.HubBaseUrl);
-        _logger.LogDebug("Payload: {Json}", JsonSerializer.Serialize(payload, new JsonSerializerOptions { WriteIndented = true }));
+        _logger.LogDebug("Payload: {Json}",
+            JsonSerializer.Serialize(payload, new JsonSerializerOptions { WriteIndented = true }));
 
         try
         {
             var response = await (_options.HubBaseUrl + "/verify")
-                                 .PostJsonAsync(payload, cancellationToken: ct)
-                                 .ReceiveJson<HubResponse>();
+                .PostJsonAsync(payload, cancellationToken: ct)
+                .ReceiveJson<HubResponse>();
 
             _logger.LogInformation("Hub response: {Message} (code: {Code})", response.Message, response.Code);
             return response;
@@ -67,21 +69,16 @@ public class HubClient
 
 public class HubRequest
 {
-    [JsonPropertyName("apikey")]
-    public string ApiKey { get; set; } = string.Empty;
+    [JsonPropertyName("apikey")] public string ApiKey { get; set; } = string.Empty;
 
-    [JsonPropertyName("task")]
-    public string Task { get; set; } = string.Empty;
+    [JsonPropertyName("task")] public string Task { get; set; } = string.Empty;
 
-    [JsonPropertyName("answer")]
-    public required object Answer { get; set; }
+    [JsonPropertyName("answer")] public required object Answer { get; set; }
 }
 
 public class HubResponse
 {
-    [JsonPropertyName("code")]
-    public int Code { get; set; }
+    [JsonPropertyName("code")] public int Code { get; set; }
 
-    [JsonPropertyName("message")]
-    public string Message { get; set; } = string.Empty;
+    [JsonPropertyName("message")] public string Message { get; set; } = string.Empty;
 }

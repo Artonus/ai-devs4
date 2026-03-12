@@ -41,7 +41,7 @@
                 <button class="btn btn--test"
                         disabled="@(_isRunning)"
                         @onclick="() => RunTask(true)">
-                    @if (_isRunning && (_runMode == "test"))
+                    @if (_isRunning && _runMode == "test")
                     {
                         <span class="spinner">&#9632;</span>
                         <span>running...</span>
@@ -54,7 +54,7 @@
                 <button class="btn btn--run"
                         disabled="@(_isRunning)"
                         @onclick="() => RunTask(false)">
-                    @if (_isRunning && (_runMode == "full"))
+                    @if (_isRunning && _runMode == "full")
                     {
                         <span class="spinner">&#9632;</span>
                         <span>running...</span>
@@ -79,7 +79,7 @@
     <section class="log-section">
         <div class="log-header">
             <h2 class="section-title"><span class="prompt">&gt;</span> output</h2>
-            @if ((_logLines.Count > 0) && !_isRunning)
+            @if (_logLines.Count > 0 && !_isRunning)
             {
                 <button class="btn-clear" @onclick="ClearLog">clear</button>
             }
@@ -106,11 +106,12 @@
 
     private record TaskInfo(string Id, string Name, string Description);
 
-    private static readonly TaskInfo[] _tasks = [
-                                                    new("people", "People Task", "Filter CSV records by demographic criteria, classify jobs via LLM, and submit results to the hub."),
-                                                    new("findhim", "Find Him Task", "Find suspect near nuclear power plant, determine access level and plant code, submit to hub."),
-                                                    new("proxy", "Proxy Task", "Act as logistics operator Alex. TEST sends a greeting; FULL sends a nuclear parts redirect request to trigger the flag.")
-                                                ];
+    private static readonly TaskInfo[] _tasks =
+    [
+        new("people", "People Task", "Filter CSV records by demographic criteria, classify jobs via LLM, and submit results to the hub."),
+        new("findhim", "Find Him Task", "Find suspect near nuclear power plant, determine access level and plant code, submit to hub."),
+        new("proxy", "Proxy Task", "Act as logistics operator Alex. TEST sends a greeting; FULL sends a nuclear parts redirect request to trigger the flag.")
+    ];
 
     private string? _selectedTask;
 
@@ -127,7 +128,6 @@
     private CancellationTokenSource? _cts;
 
 
-
     protected override void OnInitialized()
     {
         // Restore any history from a previous run that is still in memory
@@ -135,14 +135,14 @@
         _isRunning = LogService.IsRunning;
 
         _logSubscription = LogService.Subscribe(line =>
-                                                {
-                                                    InvokeAsync(() =>
-                                                                {
-                                                                    if (!string.IsNullOrEmpty(line))
-                                                                        _logLines.Add(line);
-                                                                    StateHasChanged();
-                                                                });
-                                                });
+        {
+            InvokeAsync(() =>
+            {
+                if (!string.IsNullOrEmpty(line))
+                    _logLines.Add(line);
+                StateHasChanged();
+            });
+        });
     }
 
     private void SelectTask(string id)

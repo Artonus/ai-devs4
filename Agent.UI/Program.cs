@@ -16,36 +16,35 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Configuration.AddUserSecrets<Program>();
 
 builder.Services
-       .Configure<AgentOptions>(builder.Configuration.GetSection(AgentOptions.SectionName))
-       .AddSingleton(sp => sp.GetRequiredService<IOptions<AgentOptions>>().Value)
-       .AddSingleton<ILlmClient, OpenRouterClient>()
-       .AddSingleton<PeopleTaskService>()
-       .AddSingleton<HubClient>()
-       .AddSingleton<ToolRegistry>(sp =>
-                                   {
-                                       var opts = sp.GetRequiredService<AgentOptions>();
-                                       var peopleTask = sp.GetRequiredService<PeopleTaskService>();
-                                       var registry = new ToolRegistry();
-                                       registry.Register(new FileReadTool());
-                                        registry.Register(new LoadSuspectsTool(peopleTask, opts));
-                                       registry.Register(new HubApiQueryTool(opts));
-                                       registry.Register(new CalculateDistanceTool());
-                                       registry.Register(new SubmitFindHimAnswerTool(opts));
-                                       return registry;
-                                   })
-       .AddSingleton<AgentRunner>()
-       .AddSingleton<TaskLogService>()
-       .AddSingleton<FindHimTaskService>()
-       .AddSingleton<ProxyAgentService>(sp => new ProxyAgentService(
-           sp.GetRequiredService<ILlmClient>(),
-           sp.GetRequiredService<AgentOptions>(),
-           sp.GetRequiredService<ILogger<ProxyAgentService>>(),
-           sp.GetRequiredService<TaskLogService>().Log
-       ));
+    .Configure<AgentOptions>(builder.Configuration.GetSection(AgentOptions.SectionName))
+    .AddSingleton(sp => sp.GetRequiredService<IOptions<AgentOptions>>().Value)
+    .AddSingleton<ILlmClient, OpenRouterClient>()
+    .AddSingleton<PeopleTaskService>()
+    .AddSingleton<HubClient>()
+    .AddSingleton<ToolRegistry>(sp =>
+    {
+        var opts = sp.GetRequiredService<AgentOptions>();
+        var peopleTask = sp.GetRequiredService<PeopleTaskService>();
+        var registry = new ToolRegistry();
+        registry.Register(new FileReadTool());
+        registry.Register(new LoadSuspectsTool(peopleTask, opts));
+        registry.Register(new HubApiQueryTool(opts));
+        registry.Register(new CalculateDistanceTool());
+        registry.Register(new SubmitFindHimAnswerTool(opts));
+        return registry;
+    })
+    .AddSingleton<AgentRunner>()
+    .AddSingleton<TaskLogService>()
+    .AddSingleton<FindHimTaskService>()
+    .AddSingleton<ProxyAgentService>(sp => new ProxyAgentService(
+        sp.GetRequiredService<ILlmClient>(),
+        sp.GetRequiredService<AgentOptions>(),
+        sp.GetRequiredService<TaskLogService>().Log
+    ));
 
 // Add services to the container.
 builder.Services.AddRazorComponents()
-       .AddInteractiveServerComponents();
+    .AddInteractiveServerComponents();
 
 var app = builder.Build();
 
@@ -65,7 +64,7 @@ app.UseAntiforgery();
 
 app.MapStaticAssets();
 app.MapRazorComponents<App>()
-   .AddInteractiveServerRenderMode();
+    .AddInteractiveServerRenderMode();
 
 app.MapPost("/api/proxy", async (ProxyRequest req, ProxyAgentService proxy, CancellationToken ct) =>
 {
@@ -75,6 +74,7 @@ app.MapPost("/api/proxy", async (ProxyRequest req, ProxyAgentService proxy, Canc
 
 app.Run();
 
-record ProxyRequest(
-    [property: JsonPropertyName("sessionID")] string SessionId,
+internal record ProxyRequest(
+    [property: JsonPropertyName("sessionID")]
+    string SessionId,
     [property: JsonPropertyName("msg")] string Msg);

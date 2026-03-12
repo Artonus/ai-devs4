@@ -1,6 +1,6 @@
-namespace Agent.Core.Tools;
+using Agent.Core.LLM.Models;
 
-using global::Agent.Core.LLM.Models;
+namespace Agent.Core.Tools;
 
 public class ToolRegistry
 {
@@ -14,7 +14,13 @@ public class ToolRegistry
         Console.WriteLine($"[Registry] Registered tool: {tool.Name}");
     }
 
-    public ITool? Get(string name) => _tools.GetValueOrDefault(name);
+    public ITool? Get(string name)
+    {
+        return _tools.GetValueOrDefault(name);
+    }
 
-    public IEnumerable<ToolDefinition> GetDefinitions() => _tools.Values.Select(t => t.ToDefinition());
+    public IEnumerable<ToolDefinition> GetDefinitions()
+    {
+        return _tools.Values.Select(t => t.ToDefinition());
+    }
 }

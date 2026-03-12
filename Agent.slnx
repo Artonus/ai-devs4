@@ -1,4 +1,4 @@
 <Solution>
-    <Project Path="Agent.Core/Agent.Core.csproj" />
-    <Project Path="Agent.UI/Agent.UI.csproj" />
+    <Project Path="Agent.Core/Agent.Core.csproj"/>
+    <Project Path="Agent.UI/Agent.UI.csproj"/>
 </Solution>

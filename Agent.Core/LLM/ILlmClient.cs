@@ -1,8 +1,9 @@
-namespace Agent.Core.LLM;
+using Agent.Core.LLM.Models;
 
-using global::Agent.Core.LLM.Models;
+namespace Agent.Core.LLM;
 
 public interface ILlmClient
 {
-    Task<ChatResponse> ChatAsync(IReadOnlyList<ChatMessage> messages, IReadOnlyList<ToolDefinition>? tools = null, ResponseFormat? responseFormat = null, string? modelOverride = null, CancellationToken ct = default);
+    Task<ChatResponse> ChatAsync(IReadOnlyList<ChatMessage> messages, IReadOnlyList<ToolDefinition>? tools = null,
+        ResponseFormat? responseFormat = null, string? modelOverride = null, CancellationToken ct = default);
 }

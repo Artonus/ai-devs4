@@ -1,8 +1,8 @@
-namespace Agent.Core.LLM;
-
+using Agent.Core.Configuration;
+using Agent.Core.LLM.Models;
 using Flurl.Http;
-using global::Agent.Core.Configuration;
-using global::Agent.Core.LLM.Models;
+
+namespace Agent.Core.LLM;
 
 public class OpenRouterClient : ILlmClient
 {
@@ -13,22 +13,24 @@ public class OpenRouterClient : ILlmClient
         _options = options;
     }
 
-    public async Task<ChatResponse> ChatAsync(IReadOnlyList<ChatMessage> messages, IReadOnlyList<ToolDefinition>? tools = null, ResponseFormat? responseFormat = null, string? modelOverride = null, CancellationToken ct = default)
+    public async Task<ChatResponse> ChatAsync(IReadOnlyList<ChatMessage> messages,
+        IReadOnlyList<ToolDefinition>? tools = null, ResponseFormat? responseFormat = null,
+        string? modelOverride = null, CancellationToken ct = default)
     {
         var request = new ChatRequest
-                      {
-                          Model = modelOverride ?? _options.Model,
-                          Messages = messages.ToList(),
-                          Tools = tools?.ToList() is { Count: > 0 } toolList ? toolList : null,
-                          ResponseFormat = responseFormat
-                      };
+        {
+            Model = modelOverride ?? _options.Model,
+            Messages = messages.ToList(),
+            Tools = tools?.ToList() is { Count: > 0 } toolList ? toolList : null,
+            ResponseFormat = responseFormat
+        };
 
         try
         {
             var response = await (_options.BaseUrl + "/chat/completions")
-                                 .WithHeader("Authorization", $"Bearer {_options.ApiKey}")
-                                 .PostJsonAsync(request, cancellationToken: ct)
-                                 .ReceiveJson<ChatResponse>();
+                .WithHeader("Authorization", $"Bearer {_options.ApiKey}")
+                .PostJsonAsync(request, cancellationToken: ct)
+                .ReceiveJson<ChatResponse>();
 
             return response;
         }

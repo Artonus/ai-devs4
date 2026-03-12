@@ -1,8 +1,8 @@
-namespace Agent.Core.Tasks.FindHim;
-
-using global::Agent.Core.Agent;
-using global::Agent.Core.Tasks.People;
+using Agent.Core.Agent;
+using Agent.Core.Tasks.People;
 using Microsoft.Extensions.Logging;
+
+namespace Agent.Core.Tasks.FindHim;
 
 public class FindHimTaskService
 {
@@ -76,7 +76,10 @@ public class FindHimTaskService
     }
 
     /// <summary>Registers a delegate that receives human-readable progress lines for the UI.</summary>
-    public void SetLogWriter(TaskLogWriter writer) => _logWriter = writer;
+    public void SetLogWriter(TaskLogWriter writer)
+    {
+        _logWriter = writer;
+    }
 
     private void Emit(string line)
     {
@@ -99,14 +102,18 @@ public class FindHimTaskService
 
         if (result.LimitReached)
         {
-            Emit($"WARNING: Agent hit iteration limit ({result.IterationsUsed} iterations, {result.ToolCallsCount} tool calls). Investigation may be incomplete.");
-            _logger.LogWarning("FindHim agent hit iteration limit. IterationsUsed={Iterations}, ToolCallsCount={ToolCalls}, LastResponse={Response}",
-                               result.IterationsUsed,
-                               result.ToolCallsCount,
-                               result.Response);
+            Emit(
+                $"WARNING: Agent hit iteration limit ({result.IterationsUsed} iterations, {result.ToolCallsCount} tool calls). Investigation may be incomplete.");
+            _logger.LogWarning(
+                "FindHim agent hit iteration limit. IterationsUsed={Iterations}, ToolCallsCount={ToolCalls}, LastResponse={Response}",
+                result.IterationsUsed,
+                result.ToolCallsCount,
+                result.Response);
         }
         else
+        {
             Emit($"// Agent completed in {result.IterationsUsed} iterations, {result.ToolCallsCount} tool calls.");
+        }
 
         Emit($"// Agent response: {result.Response}");
     }

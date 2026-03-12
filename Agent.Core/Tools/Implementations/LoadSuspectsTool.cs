@@ -6,8 +6,8 @@ namespace Agent.Core.Tools.Implementations;
 
 public class LoadSuspectsTool : ITool
 {
-    private readonly PeopleTaskService _peopleTaskService;
     private readonly AgentOptions _options;
+    private readonly PeopleTaskService _peopleTaskService;
 
     public LoadSuspectsTool(PeopleTaskService peopleTaskService, AgentOptions options)
     {

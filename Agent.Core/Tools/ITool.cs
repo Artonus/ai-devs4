@@ -1,7 +1,7 @@
-namespace Agent.Core.Tools;
-
 using System.Text.Json;
-using global::Agent.Core.LLM.Models;
+using Agent.Core.LLM.Models;
+
+namespace Agent.Core.Tools;
 
 public interface ITool
 {
@@ -16,5 +16,9 @@ public interface ITool
 
     Task<ToolResult> ExecuteAsync(JsonElement parameters, CancellationToken ct = default);
 
-    ToolDefinition ToDefinition() => new() { Function = new ToolFunction { Name = Name, Description = Description, Parameters = ParameterSchema } };
+    ToolDefinition ToDefinition()
+    {
+        return new ToolDefinition
+            { Function = new ToolFunction { Name = Name, Description = Description, Parameters = ParameterSchema } };
+    }
 }

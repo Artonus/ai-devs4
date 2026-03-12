@@ -1,8 +1,8 @@
-namespace Agent.Core.Tools.Implementations;
-
 using System.Text.Json;
-using global::Agent.Core.Configuration;
+using Agent.Core.Configuration;
 using Flurl.Http;
+
+namespace Agent.Core.Tools.Implementations;
 
 public class CheckPackageTool : ITool
 {
@@ -36,8 +36,8 @@ public class CheckPackageTool : ITool
         {
             var payload = new { apikey = _options.AiDevsKey, action = "check", packageid = packageId };
             var json = await (_options.HubBaseUrl + "/api/packages")
-                             .PostJsonAsync(payload, cancellationToken: ct)
-                             .ReceiveString();
+                .PostJsonAsync(payload, cancellationToken: ct)
+                .ReceiveString();
             return ToolResult.Ok(json);
         }
         catch (FlurlHttpException ex)
@@ -53,7 +53,7 @@ public class CheckPackageTool : ITool
 
     private static bool TryGetString(JsonElement element, string propertyName, out string? value)
     {
-        if (element.TryGetProperty(propertyName, out var prop) && (prop.ValueKind == JsonValueKind.String))
+        if (element.TryGetProperty(propertyName, out var prop) && prop.ValueKind == JsonValueKind.String)
         {
             value = prop.GetString();
             return !string.IsNullOrWhiteSpace(value);

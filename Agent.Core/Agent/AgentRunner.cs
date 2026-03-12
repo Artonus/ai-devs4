@@ -1,11 +1,11 @@
-namespace Agent.Core.Agent;
-
 using System.Text.Json;
-using global::Agent.Core.Configuration;
-using global::Agent.Core.LLM;
-using global::Agent.Core.LLM.Models;
-using global::Agent.Core.Tools;
+using Agent.Core.Configuration;
+using Agent.Core.LLM;
+using Agent.Core.LLM.Models;
+using Agent.Core.Tools;
 using Microsoft.Extensions.Logging;
+
+namespace Agent.Core.Agent;
 
 public class AgentRunner
 {
@@ -28,7 +28,10 @@ public class AgentRunner
     }
 
     /// <summary>Registers a delegate that receives human-readable progress lines for the UI.</summary>
-    public void SetLogWriter(Action<string> writer) => _logWriter = writer;
+    public void SetLogWriter(Action<string> writer)
+    {
+        _logWriter = writer;
+    }
 
     private void Emit(string line)
     {
@@ -44,7 +47,8 @@ public class AgentRunner
     /// <param name="maxIterations">Maximum number of LLM calls before halting. Default: 15.</param>
     /// <param name="modelOverride">If provided, overrides the model from AgentOptions for this run.</param>
     /// <param name="ct">Cancellation token.</param>
-    public async Task<AgentRunResult> RunAsync(string userInput, string? systemPromptOverride = null, int maxIterations = 15, string? modelOverride = null, CancellationToken ct = default)
+    public async Task<AgentRunResult> RunAsync(string userInput, string? systemPromptOverride = null,
+        int maxIterations = 15, string? modelOverride = null, CancellationToken ct = default)
     {
         var effectiveSystemPrompt = systemPromptOverride ?? _systemPrompt;
 
@@ -79,7 +83,8 @@ public class AgentRunner
                 return new AgentRunResult(false, lastContent, iterations - 1, true, toolCallsCount);
             }
 
-            var response = await _llmClient.ChatAsync(messages, tools.Count > 0 ? tools : null, modelOverride: modelOverride, ct: ct);
+            var response = await _llmClient.ChatAsync(messages, tools.Count > 0 ? tools : null,
+                modelOverride: modelOverride, ct: ct);
 
             if (response.Error is not null)
                 throw new InvalidOperationException($"LLM error: {response.Error.Message}");
@@ -105,9 +110,8 @@ public class AgentRunner
 
             // No tool calls → final answer
             if (!hasToolCalls)
-            {
-                return new AgentRunResult(true, assistantMessage.Content ?? string.Empty, iterations, false, toolCallsCount);
-            }
+                return new AgentRunResult(true, assistantMessage.Content ?? string.Empty, iterations, false,
+                    toolCallsCount);
 
             // Execute each tool call
             foreach (var toolCall in assistantMessage.ToolCalls!)
