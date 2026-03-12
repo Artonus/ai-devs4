@@ -4,7 +4,7 @@ using Agent.Core.Configuration;
 using Flurl.Http;
 using Microsoft.Extensions.Logging;
 
-namespace Agent.Core.Tasks.People;
+namespace Agent.Core.Hub;
 
 public class HubClient
 {
@@ -23,8 +23,7 @@ public class HubClient
         var payload = new HubRequest { ApiKey = _options.AiDevsKey, Task = task, Answer = requestData };
 
         _logger.LogInformation("Submitting task to {Url}/verify", _options.HubBaseUrl);
-        _logger.LogDebug("Payload: {Json}",
-            JsonSerializer.Serialize(payload, new JsonSerializerOptions { WriteIndented = true }));
+        _logger.LogDebug("Payload: {Json}", JsonSerializer.Serialize(payload, new JsonSerializerOptions { WriteIndented = true }));
 
         try
         {
@@ -42,7 +41,7 @@ public class HubClient
         }
     }
 
-    public async Task<HubResponse> SubmitPeopleAsync(List<PersonResult> people, CancellationToken ct = default)
+    public async Task<HubResponse> SubmitPeopleAsync(List<Tasks.People.PersonResult> people, CancellationToken ct = default)
     {
         var payload = new HubRequest { ApiKey = _options.AiDevsKey, Task = "people", Answer = people };
 

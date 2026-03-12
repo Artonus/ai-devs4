@@ -2,7 +2,8 @@
 @rendermode InteractiveServer
 @inject PeopleTaskService PeopleTask
 @inject FindHimTaskService FindHimTask
-@inject HubClient HubClient
+@inject Agent.Core.Hub.HubClient HubClient
+@inject SendItTaskService SendItTask
 @inject TaskLogService LogService
 @inject AgentOptions AgentOptions
 @inject ProxyAgentService ProxyTask
@@ -10,6 +11,7 @@
 @using Agent.Core.Tasks.FindHim
 @using Agent.Core.Tasks.People
 @using Agent.Core.Tasks.Proxy
+@using Agent.Core.Tasks.SendIt
 @using Agent.UI.Services
 @implements IDisposable
 
@@ -110,7 +112,8 @@
     [
         new("people", "People Task", "Filter CSV records by demographic criteria, classify jobs via LLM, and submit results to the hub."),
         new("findhim", "Find Him Task", "Find suspect near nuclear power plant, determine access level and plant code, submit to hub."),
-        new("proxy", "Proxy Task", "Act as logistics operator Alex. TEST sends a greeting; FULL sends a nuclear parts redirect request to trigger the flag.")
+        new("proxy", "Proxy Task", "Act as logistics operator Alex. TEST sends a greeting; FULL sends a nuclear parts redirect request to trigger the flag."),
+        new("sendit", "Send It Task", "Fetch shipping declaration docs, find the Gdansk→Zarnowiec route code with 0 PP fee, fill the template and submit.")
     ];
 
     private string? _selectedTask;
@@ -175,6 +178,8 @@
                 await RunFindHimTaskAsync(testMode, _cts.Token);
             else if (_selectedTask == "proxy")
                 await RunProxyTaskAsync(testMode, _cts.Token);
+            else if (_selectedTask == "sendit")
+                await RunSendItTaskAsync(testMode, _cts.Token);
         }
         catch (OperationCanceledException)
         {
@@ -256,6 +261,15 @@
             LogService.Log($"Starting a task with response from centrala: Code: {answer.Code} Message: {answer.Message}");
             //await ProxyTask.HandleAsync(sessionId, "Hi, I need to redirect package NF-7749 containing reactor fuel cassettes. Please send it to facility GAMMA-9.", ct);
         }
+    }
+
+    private async Task RunSendItTaskAsync(bool testMode, CancellationToken ct)
+    {
+        SendItTask.SetLogWriter(line => LogService.Log(line));
+
+        LogService.Log(testMode ? "// SendIt Task — TEST MODE (agent runs, will still submit)" : "// SendIt Task — FULL MODE");
+
+        await SendItTask.RunAsync(ct);
     }
 
     private void CancelTask()

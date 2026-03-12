@@ -1,44 +1,20 @@
 using System.Text.Json.Serialization;
-using Agent.Core.Agent;
-using Agent.Core.Configuration;
+using Agent.Core.Extensions;
 using Agent.Core.LLM;
-using Agent.Core.Tasks.FindHim;
-using Agent.Core.Tasks.People;
 using Agent.Core.Tasks.Proxy;
-using Agent.Core.Tools;
-using Agent.Core.Tools.Implementations;
 using Agent.UI.Components;
 using Agent.UI.Services;
-using Microsoft.Extensions.Options;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Configuration.AddUserSecrets<Program>();
 
+builder.Services.AddAgentCore(builder.Configuration);
 builder.Services
-    .Configure<AgentOptions>(builder.Configuration.GetSection(AgentOptions.SectionName))
-    .AddSingleton(sp => sp.GetRequiredService<IOptions<AgentOptions>>().Value)
-    .AddSingleton<ILlmClient, OpenRouterClient>()
-    .AddSingleton<PeopleTaskService>()
-    .AddSingleton<HubClient>()
-    .AddSingleton<ToolRegistry>(sp =>
-    {
-        var opts = sp.GetRequiredService<AgentOptions>();
-        var peopleTask = sp.GetRequiredService<PeopleTaskService>();
-        var registry = new ToolRegistry();
-        registry.Register(new FileReadTool());
-        registry.Register(new LoadSuspectsTool(peopleTask, opts));
-        registry.Register(new HubApiQueryTool(opts));
-        registry.Register(new CalculateDistanceTool());
-        registry.Register(new SubmitFindHimAnswerTool(opts));
-        return registry;
-    })
-    .AddSingleton<AgentRunner>()
     .AddSingleton<TaskLogService>()
-    .AddSingleton<FindHimTaskService>()
     .AddSingleton<ProxyAgentService>(sp => new ProxyAgentService(
         sp.GetRequiredService<ILlmClient>(),
-        sp.GetRequiredService<AgentOptions>(),
+        sp.GetRequiredService<Agent.Core.Configuration.AgentOptions>(),
         sp.GetRequiredService<TaskLogService>().Log
     ));
 
