@@ -409,6 +409,11 @@ a:hover {
     animation: blink 1s step-end infinite;
 }
 
+.terminal-line--flag {
+    color: #00ff88;
+    font-weight: bold;
+}
+
 @keyframes blink {
     0%, 100% {
         opacity: 1;

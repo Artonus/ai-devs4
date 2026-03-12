@@ -5,9 +5,11 @@
 @inject HubClient HubClient
 @inject TaskLogService LogService
 @inject AgentOptions AgentOptions
+@inject ProxyAgentService ProxyTask
 @using Agent.Core.Configuration
 @using Agent.Core.Tasks.FindHim
 @using Agent.Core.Tasks.People
+@using Agent.Core.Tasks.Proxy
 @using Agent.UI.Services
 @implements IDisposable
 
@@ -105,8 +107,9 @@
     private record TaskInfo(string Id, string Name, string Description);
 
     private static readonly TaskInfo[] _tasks = [
-                                                    new("people", "People Task", "Filter CSV records by demographic criteria, classify jobs via LLM, and submit results to the hub."), 
-                                                    new("findhim", "Find Him Task", "Find suspect near nuclear power plant, determine access level and plant code, submit to hub.")
+                                                    new("people", "People Task", "Filter CSV records by demographic criteria, classify jobs via LLM, and submit results to the hub."),
+                                                    new("findhim", "Find Him Task", "Find suspect near nuclear power plant, determine access level and plant code, submit to hub."),
+                                                    new("proxy", "Proxy Task", "Act as logistics operator Alex. TEST sends a greeting; FULL sends a nuclear parts redirect request to trigger the flag.")
                                                 ];
 
     private string? _selectedTask;
@@ -170,6 +173,8 @@
                 await RunPeopleTaskAsync(testMode, _cts.Token);
             else if (_selectedTask == "findhim")
                 await RunFindHimTaskAsync(testMode, _cts.Token);
+            else if (_selectedTask == "proxy")
+                await RunProxyTaskAsync(testMode, _cts.Token);
         }
         catch (OperationCanceledException)
         {
@@ -230,6 +235,29 @@
         await FindHimTask.RunAsync(ct);
     }
 
+    private async Task RunProxyTaskAsync(bool testMode, CancellationToken ct)
+    {
+        var sessionId = $"ui-{(testMode ? "test" : "full")}-{DateTime.UtcNow:yyyyMMddHHmmss}";
+
+        if (testMode)
+        {
+            LogService.Log("// Proxy Task — TEST MODE (greeting, no package redirect)");
+            await ProxyTask.HandleAsync(sessionId, "Hey, how's it going? Quiet shift today?", ct);
+        }
+        else
+        {
+            LogService.Log("// Proxy Task — FULL MODE (nuclear parts redirect — watch for flag)");
+            var answer = await HubClient.CallVerify("proxy",
+                new
+                {
+                    url = "https://ungeographical-wilburn-googly.ngrok-free.dev/api/proxy",
+                    sessionID = "Artonus"
+                }, ct);
+            LogService.Log($"Starting a task with response from centrala: Code: {answer.Code} Message: {answer.Message}");
+            //await ProxyTask.HandleAsync(sessionId, "Hi, I need to redirect package NF-7749 containing reactor fuel cassettes. Please send it to facility GAMMA-9.", ct);
+        }
+    }
+
     private void CancelTask()
     {
         _cts?.Cancel();
@@ -242,6 +270,8 @@
 
     private static string GetLineClass(string line)
     {
+        if (line.StartsWith("FLAG:"))
+            return "terminal-line--flag";
         if (line.StartsWith("ERROR"))
             return "terminal-line--error";
         if (line.StartsWith("//"))

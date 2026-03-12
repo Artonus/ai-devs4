@@ -18,6 +18,29 @@ public class HubClient
         _logger = logger;
     }
 
+    public async Task<HubResponse> CallVerify(string task, object requestData, CancellationToken ct = default)
+    {
+        var payload = new HubRequest { ApiKey = _options.AiDevsKey, Task = task, Answer = requestData };
+
+        _logger.LogInformation("Submitting task to {Url}/verify", _options.HubBaseUrl);
+        _logger.LogDebug("Payload: {Json}", JsonSerializer.Serialize(payload, new JsonSerializerOptions { WriteIndented = true }));
+
+        try
+        {
+            var response = await (_options.HubBaseUrl + "/verify")
+                .PostJsonAsync(payload, cancellationToken: ct)
+                .ReceiveJson<HubResponse>();
+
+            _logger.LogInformation("Hub response: {Message} (code: {Code})", response.Message, response.Code);
+            return response;
+        }
+        catch (FlurlHttpException ex)
+        {
+            var errorBody = await ex.GetResponseStringAsync();
+            throw new InvalidOperationException($"Hub API error ({ex.StatusCode}): {errorBody}", ex);
+        }
+    }
+
     public async Task<HubResponse> SubmitPeopleAsync(List<PersonResult> people, CancellationToken ct = default)
     {
         var payload = new HubRequest { ApiKey = _options.AiDevsKey, Task = "people", Answer = people };
@@ -51,7 +74,7 @@ public class HubRequest
     public string Task { get; set; } = string.Empty;
 
     [JsonPropertyName("answer")]
-    public List<PersonResult> Answer { get; set; } = [];
+    public required object Answer { get; set; }
 }
 
 public class HubResponse

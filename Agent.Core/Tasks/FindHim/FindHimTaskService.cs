@@ -54,9 +54,9 @@ public class FindHimTaskService
                                         1. Load the suspects list first.
                                         2. Fetch all power plant locations.
                                         3. For each suspect, query their locations.
-                                        4. Calculate the distance between all suspects location and all power plants.
-                                        5. Identify which suspect was closest to (or near) a nuclear power plant.
-                                        6. Retrieve that suspect's access level using their name, surname, and birthYear.
+                                        4. For each suspect query their access level using their name, surname , and birthYear.
+                                        5. Calculate the distance between all suspects location and all power plants.
+                                        6. Identify which suspect was closest to (or near) a nuclear power plant.
                                         7. Note the power plant code for the nearest plant.
                                         8. Submit your findings using submit_findhim_answer.
 
