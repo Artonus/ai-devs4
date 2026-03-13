@@ -36,12 +36,11 @@ public static class AgentCoreServiceExtensions
                 registry.Register(new LoadSuspectsTool(peopleTask, opts));
                 registry.Register(new HubApiQueryTool(opts));
                 registry.Register(new CalculateDistanceTool());
-                registry.Register(new SubmitFindHimAnswerTool(opts));
                 registry.Register(new FetchUrlTool(llmClient));
-                registry.Register(new AnalyzeImageTool(llmClient));
                 registry.Register(new SubmitAnswerTool(hub));
                 registry.Register(new RailwayApiTool(opts));
                 registry.Register(new SubmitFlagTool(opts));
+                registry.Register(new PackageApiTool(opts));
                 return registry;
             })
             .AddSingleton<AgentRunner>()

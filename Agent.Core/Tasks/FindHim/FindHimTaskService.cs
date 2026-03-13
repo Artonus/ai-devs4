@@ -44,9 +44,10 @@ public class FindHimTaskService
                                         Returns { distanceKm } — the Haversine great-circle distance between two coordinates.
                                         Use this to measure how far each suspect was from each power plant.
 
-                                        ### submit_findhim_answer
-                                        Parameters: name, surname, accessLevel (integer), powerPlant (string, format PWR####PL)
+                                        ### submit_answer
+                                        Parameters: task (string), answer (string — JSON-encoded)
                                         Submits the final answer to the Hub for verification.
+                                        For this task use task="findhim" and answer={"name":"...","surname":"...","accessLevel":<int>,"powerPlant":"PWR####PL"}.
                                         Call this ONLY when you are confident in all four values.
 
                                         ## Investigation guidelines
@@ -58,7 +59,7 @@ public class FindHimTaskService
                                         5. Calculate the distance between all suspects location and all power plants.
                                         6. Identify which suspect was closest to (or near) a nuclear power plant.
                                         7. Note the power plant code for the nearest plant.
-                                        8. Submit your findings using submit_findhim_answer.
+                                        8. Submit your findings using submit_answer with task="findhim".
 
                                         Be methodical. Do not guess — all required information is available through the tools.
                                         """;

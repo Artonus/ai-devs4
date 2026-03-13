@@ -23,7 +23,7 @@ public class SendItTaskService
         ## Your workflow
         1. Use `fetch_url` to fetch https://hub.ag3nts.org/dane/doc/index.md
         2. Follow every link in the index document — use `fetch_url` for text/markdown links
-        3. For any image URLs (.png, .jpg, .gif, etc.) use `analyze_image` to read their content
+        3. For any image URLs (.png, .jpg, .gif, etc.) use `fetch_url` with an optional `question` to read their content
         4. Find the declaration template document and the route table
         5. In the route table, find the route code for Gdansk→Zarnowiec where PP = 0
         6. Fill in the declaration template with the shipment details above
@@ -32,14 +32,10 @@ public class SendItTaskService
         ## Tools available
 
         ### fetch_url
-        Parameter: url (string)
+        Parameters: url (string), question (string, optional)
         Fetches a URL. Returns text content for text/markdown/html documents.
         For image URLs, automatically uses vision to transcribe the content.
-
-        ### analyze_image
-        Parameters: image_url (string), question (string, optional)
-        Downloads an image and uses vision LLM to analyze it.
-        Use this when you need to ask a specific question about an image.
+        Supply a `question` to ask the vision model something specific about an image.
 
         ### submit_answer
         Parameters: task (string), answer (string — JSON-encoded)
