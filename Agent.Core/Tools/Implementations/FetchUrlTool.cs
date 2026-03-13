@@ -7,9 +7,13 @@ namespace Agent.Core.Tools.Implementations;
 /// <summary>
 ///     Fetches a URL and returns its content as text.
 ///     For image URLs, uses vision LLM to transcribe/describe the content.
+///     An optional <c>question</c> parameter guides the vision analysis.
 /// </summary>
 public class FetchUrlTool : ITool
 {
+    private const string VisionModel = "openai/gpt-5-mini";
+    private const string DefaultImagePrompt = "Transcribe all text in this image exactly. Describe its full content.";
+
     private readonly ILlmClient _llmClient;
 
     public FetchUrlTool(ILlmClient llmClient)
@@ -21,14 +25,21 @@ public class FetchUrlTool : ITool
 
     public string Description =>
         "Fetches a URL and returns its content. Text/HTML/Markdown URLs return raw content. " +
-        "Image URLs are automatically analyzed via vision LLM and their text content is returned.";
+        "Image URLs are automatically analyzed via vision LLM and their text content is returned. " +
+        "Supply an optional 'question' to guide what the vision model focuses on when analyzing an image.";
 
     public object ParameterSchema => new
     {
         type = "object",
         properties = new
         {
-            url = new { type = "string", description = "The URL to fetch." }
+            url = new { type = "string", description = "The URL to fetch." },
+            question = new
+            {
+                type = "string",
+                description =
+                    "Optional. For image URLs: what to ask the vision model. Defaults to transcribing all text."
+            }
         },
         required = new[] { "url" }
     };
@@ -39,8 +50,12 @@ public class FetchUrlTool : ITool
             return ToolResult.Fail("Missing required parameter: url");
 
         var url = urlEl.GetString()!;
+        var question = parameters.TryGetProperty("question", out var qEl) && qEl.ValueKind == JsonValueKind.String
+            ? qEl.GetString() ?? DefaultImagePrompt
+            : DefaultImagePrompt;
 
-        var cached = await UrlCache.GetAsync(url, ct);
+        var cacheKey = question == DefaultImagePrompt ? url : $"{url}|{question}";
+        var cached = await UrlCache.GetAsync(cacheKey, ct);
         if (cached is not null)
             return ToolResult.Ok(cached);
 
@@ -55,18 +70,14 @@ public class FetchUrlTool : ITool
                 var bytes = await response.GetBytesAsync();
                 var mediaType = contentType.Split(';')[0].Trim();
                 var dataUri = $"data:{mediaType};base64,{Convert.ToBase64String(bytes)}";
-                result = await _llmClient.DescribeImageAsync(
-                    dataUri,
-                    "Transcribe all text in this image exactly. Describe its full content.",
-                    modelOverride: "openai/gpt-5-mini",
-                    ct: ct);
+                result = await _llmClient.DescribeImageAsync(dataUri, question, VisionModel, ct);
             }
             else
             {
                 result = await response.GetStringAsync();
             }
 
-            await UrlCache.SetAsync(url, result, ct);
+            await UrlCache.SetAsync(cacheKey, result, ct);
             return ToolResult.Ok(result);
         }
         catch (FlurlHttpException ex)

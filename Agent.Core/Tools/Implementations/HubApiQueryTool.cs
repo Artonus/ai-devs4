@@ -1,6 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Agent.Core.Configuration;
+using Agent.Core.Tools;
 using Flurl.Http;
 
 namespace Agent.Core.Tools.Implementations;
@@ -88,9 +89,9 @@ public class HubApiQueryTool : ITool
 
     private async Task<ToolResult> GetLocationAsync(JsonElement parameters, CancellationToken ct)
     {
-        if (!TryGetString(parameters, "name", out var name))
+        if (!parameters.TryGetString("name", out var name))
             return ToolResult.Fail("Missing required parameter 'name' for endpoint 'location'.");
-        if (!TryGetString(parameters, "surname", out var surname))
+        if (!parameters.TryGetString("surname", out var surname))
             return ToolResult.Fail("Missing required parameter 'surname' for endpoint 'location'.");
 
         try
@@ -144,9 +145,9 @@ public class HubApiQueryTool : ITool
 
     private async Task<ToolResult> GetAccessLevelAsync(JsonElement parameters, CancellationToken ct)
     {
-        if (!TryGetString(parameters, "name", out var name))
+        if (!parameters.TryGetString("name", out var name))
             return ToolResult.Fail("Missing required parameter 'name' for endpoint 'accesslevel'.");
-        if (!TryGetString(parameters, "surname", out var surname))
+        if (!parameters.TryGetString("surname", out var surname))
             return ToolResult.Fail("Missing required parameter 'surname' for endpoint 'accesslevel'.");
         if (!parameters.TryGetProperty("birthYear", out var birthYearEl) ||
             birthYearEl.ValueKind != JsonValueKind.Number)
@@ -180,15 +181,4 @@ public class HubApiQueryTool : ITool
         }
     }
 
-    private static bool TryGetString(JsonElement element, string propertyName, out string? value)
-    {
-        if (element.TryGetProperty(propertyName, out var prop) && prop.ValueKind == JsonValueKind.String)
-        {
-            value = prop.GetString();
-            return !string.IsNullOrWhiteSpace(value);
-        }
-
-        value = null;
-        return false;
-    }
 }
