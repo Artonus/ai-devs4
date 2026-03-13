@@ -4,6 +4,7 @@ using Agent.Core.Hub;
 using Agent.Core.LLM;
 using Agent.Core.Tasks.FindHim;
 using Agent.Core.Tasks.People;
+using Agent.Core.Tasks.Railway;
 using Agent.Core.Tasks.SendIt;
 using Agent.Core.Tools;
 using Agent.Core.Tools.Implementations;
@@ -39,11 +40,14 @@ public static class AgentCoreServiceExtensions
                 registry.Register(new FetchUrlTool(llmClient));
                 registry.Register(new AnalyzeImageTool(llmClient));
                 registry.Register(new SubmitAnswerTool(hub));
+                registry.Register(new RailwayApiTool(opts));
+                registry.Register(new SubmitFlagTool(opts));
                 return registry;
             })
             .AddSingleton<AgentRunner>()
             .AddSingleton<FindHimTaskService>()
-            .AddSingleton<SendItTaskService>();
+            .AddSingleton<SendItTaskService>()
+            .AddSingleton<RailwayTaskService>();
 
         return services;
     }

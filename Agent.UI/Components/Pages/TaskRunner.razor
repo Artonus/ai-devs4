@@ -4,6 +4,7 @@
 @inject FindHimTaskService FindHimTask
 @inject Agent.Core.Hub.HubClient HubClient
 @inject SendItTaskService SendItTask
+@inject RailwayTaskService RailwayTask
 @inject TaskLogService LogService
 @inject AgentOptions AgentOptions
 @inject ProxyAgentService ProxyTask
@@ -12,6 +13,7 @@
 @using Agent.Core.Tasks.People
 @using Agent.Core.Tasks.Proxy
 @using Agent.Core.Tasks.SendIt
+@using Agent.Core.Tasks.Railway
 @using Agent.UI.Services
 @implements IDisposable
 
@@ -113,7 +115,8 @@
         new("people", "People Task", "Filter CSV records by demographic criteria, classify jobs via LLM, and submit results to the hub."),
         new("findhim", "Find Him Task", "Find suspect near nuclear power plant, determine access level and plant code, submit to hub."),
         new("proxy", "Proxy Task", "Act as logistics operator Alex. TEST sends a greeting; FULL sends a nuclear parts redirect request to trigger the flag."),
-        new("sendit", "Send It Task", "Fetch shipping declaration docs, find the Gdansk→Zarnowiec route code with 0 PP fee, fill the template and submit.")
+        new("sendit", "Send It Task", "Fetch shipping declaration docs, find the Gdansk→Zarnowiec route code with 0 PP fee, fill the template and submit."),
+        new("railway", "Railway Task", "Discover the railway API protocol via help action, then activate route X-01. Handles 503 retries and rate limits automatically.")
     ];
 
     private string? _selectedTask;
@@ -180,6 +183,8 @@
                 await RunProxyTaskAsync(testMode, _cts.Token);
             else if (_selectedTask == "sendit")
                 await RunSendItTaskAsync(testMode, _cts.Token);
+            else if (_selectedTask == "railway")
+                await RunRailwayTaskAsync(testMode, _cts.Token);
         }
         catch (OperationCanceledException)
         {
@@ -270,6 +275,15 @@
         LogService.Log(testMode ? "// SendIt Task — TEST MODE (agent runs, will still submit)" : "// SendIt Task — FULL MODE");
 
         await SendItTask.RunAsync(ct);
+    }
+
+    private async Task RunRailwayTaskAsync(bool testMode, CancellationToken ct)
+    {
+        RailwayTask.SetLogWriter(line => LogService.Log(line));
+
+        LogService.Log(testMode ? "// Railway Task — TEST MODE (agent runs, discovers API and activates route)" : "// Railway Task — FULL MODE");
+
+        await RailwayTask.RunAsync(ct);
     }
 
     private void CancelTask()
